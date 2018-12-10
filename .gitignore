@@ -79,5 +79,10 @@ typings/
 # Serverless directories
 .serverless
 
+# OS specific files
+.DS_Store
+
+# IDE config files
+.idea/
 
 # End of https://www.gitignore.io/api/git,node

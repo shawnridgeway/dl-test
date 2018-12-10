@@ -47,7 +47,7 @@ describe("getAvailabilities", () => {
         "9:30",
         "10:00",
         "11:30",
-        "21:00"
+        „14:00"
       ]);
 
       expect(String(availabilities[6].date)).toBe(
