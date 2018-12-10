@@ -10,14 +10,7 @@ export default async function getAvailabilities(date) {
 
   // Initialize the "availabilities" map with no slots filled 
   // for each day in the given timeframe
-  const availabilities = new Map();
-  for (let i = 0; i < numberOfDays; i++) {
-    const tmpDate = moment(startDate).add(i, "days");
-    availabilities.set(tmpDate.format("d"), {
-      date: tmpDate.toDate(),
-      slots: []
-    });
-  }
+  const availabilities = initializeAvailabilities(startDate, numberOfDays);
 
   // Retrieve all events that are reoccuring or within the timeframe
   const events = await knex
@@ -35,15 +28,9 @@ export default async function getAvailabilities(date) {
   // Flatten array into:
   // 1) One-time events (as they are) and
   // 2) One event for each recurring event that occurs in the timeframe
-  const oneTimeEvents = events
-    .filter(event => !event.weekly_recurring)
-  const eventSeries = events
-    .filter(event => event.weekly_recurring);
-  const recurringEvents = Array.from(availabilities.values())
-    .map(availability => moment(availability.date).day())
-    .map(dayOfWeek => eventSeries
-      .filter(series => moment(series).day() === dayOfWeek))
-    .flat();
+  const oneTimeEvents = events.filter(event => !event.weekly_recurring)
+  const eventSeries = events.filter(event => event.weekly_recurring);
+  const recurringEvents = getEventsFromSeries(eventSeries, availabilities);
   const flattenedEvents = [ ...oneTimeEvents, ...recurringEvents ];
 
   // Order by "kind", so that openenings are processed before appointments
@@ -74,4 +61,24 @@ export default async function getAvailabilities(date) {
   }
 
   return Array.from(availabilities.values())
+}
+
+function initializeAvailabilities(startDate, numberOfDays) {
+  const availabilities = new Map();
+  for (let i = 0; i < numberOfDays; i++) {
+    const tmpDate = moment(startDate).add(i, "days");
+    availabilities.set(tmpDate.format("d"), {
+      date: tmpDate.toDate(),
+      slots: []
+    });
+  }
+  return availabilities;
+}
+
+function getEventsFromSeries(eventSeries, availabilities) {
+  return Array.from(availabilities.values())
+    .map(availability => moment(availability.date).day())
+    .map(dayOfWeek => eventSeries
+      .filter(series => moment(series).day() === dayOfWeek))
+    .flat();
 }
