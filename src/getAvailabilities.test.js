@@ -1,14 +1,18 @@
+// 3p
 import knex from "knexClient";
+
+// Project
 import getAvailabilities from "./getAvailabilities";
+
 
 describe("getAvailabilities", () => {
   beforeEach(() => knex("events").truncate());
 
   describe("case 1", () => {
-    it("test 1", async () => {
+    it("returns an array with the specified number of days and each day has no slots", async () => {
       const availabilities = await getAvailabilities(new Date("2014-08-10"));
       expect(availabilities.length).toBe(7);
-      for (let i = 0; i < 7; ++i) {
+      for (let i = 0; i < 7; i++) {
         expect(availabilities[i].slots).toEqual([]);
       }
     });
@@ -31,7 +35,7 @@ describe("getAvailabilities", () => {
       ]);
     });
 
-    it("test 1", async () => {
+    it("correctly consumes openings and appointments", async () => {
       const availabilities = await getAvailabilities(new Date("2014-08-10"));
       expect(availabilities.length).toBe(7);
 
@@ -47,12 +51,13 @@ describe("getAvailabilities", () => {
         "9:30",
         "10:00",
         "11:30",
-        „14:00"
+        "12:00"
       ]);
 
       expect(String(availabilities[6].date)).toBe(
         String(new Date("2014-08-16"))
       );
+      expect(availabilities[6].slots).toEqual([]);
     });
   });
 
@@ -73,7 +78,7 @@ describe("getAvailabilities", () => {
       ]);
     });
 
-    it("test 1", async () => {
+    it("correctly ignores recurring events begining after the end of the timeframe", async () => {
       const availabilities = await getAvailabilities(new Date("2014-08-10"));
       expect(availabilities.length).toBe(7);
 
@@ -84,6 +89,11 @@ describe("getAvailabilities", () => {
 
       expect(String(availabilities[1].date)).toBe(
         String(new Date("2014-08-11"))
+      );
+      expect(availabilities[1].slots).toEqual([]);
+
+      expect(String(availabilities[6].date)).toBe(
+        String(new Date("2014-08-16"))
       );
       expect(availabilities[6].slots).toEqual([]);
     });
