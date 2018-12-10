@@ -3,8 +3,10 @@ import moment from "moment";
 import knex from "knexClient";
 
 
-export default async function getAvailabilities(date) {
-  const numberOfDays = 7;
+const availabilityMapKeyFormat = "YYYY-MM-DD";
+const slotKeyFormat = "H:mm";
+
+export default async function getAvailabilities(date, numberOfDays = 7) {
   const startDate = date;
   const endDate = moment(date).add(numberOfDays, "days").toDate();
 
@@ -47,14 +49,14 @@ export default async function getAvailabilities(date) {
       slotDate.isBefore(event.ends_at);
       slotDate.add(30, "minutes")
     ) {
-      const day = availabilities.get(slotDate.format("d"));
+      const day = availabilities.get(slotDate.format(availabilityMapKeyFormat));
       if (event.kind === "opening") {
         // Add opening 
-        day.slots.push(slotDate.format("H:mm"));
+        day.slots.push(slotDate.format(slotKeyFormat));
       } else if (event.kind === "appointment") {
         // Remove opening 
         day.slots = day.slots.filter(
-          slot => slot !== slotDate.format("H:mm")
+          slot => slot !== slotDate.format(slotKeyFormat)
         );
       }
     }
@@ -67,7 +69,7 @@ function initializeAvailabilities(startDate, numberOfDays) {
   const availabilities = new Map();
   for (let i = 0; i < numberOfDays; i++) {
     const tmpDate = moment(startDate).add(i, "days");
-    availabilities.set(tmpDate.format("d"), {
+    availabilities.set(tmpDate.format(availabilityMapKeyFormat), {
       date: tmpDate.toDate(),
       slots: []
     });
@@ -77,8 +79,19 @@ function initializeAvailabilities(startDate, numberOfDays) {
 
 function getEventsFromSeries(eventSeries, availabilities) {
   return Array.from(availabilities.values())
-    .map(availability => moment(availability.date).day())
-    .map(dayOfWeek => eventSeries
-      .filter(series => moment(series).day() === dayOfWeek))
+    .map(availability => eventSeries
+      .filter(series => moment(series.starts_at).day() === moment(availability.date).day())
+      .map(event => ({
+        ...event, 
+        starts_at: +moment(availability.date)
+          .hours(moment(event.starts_at).hours())
+          .minutes(moment(event.starts_at).minutes())
+          .toDate(), 
+        ends_at: +moment(availability.date)
+          .hours(moment(event.ends_at).hours())
+          .minutes(moment(event.ends_at).minutes())
+          .toDate()
+      })
+    ))
     .flat();
 }
